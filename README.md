@@ -1,5 +1,5 @@
 # go-stream
-> A simple stream api for go, power by **Rangefunc Experiment**.
+> A simple stream api for Go, powered by **Rangefunc Experiment**.
 
 ## Usage
 > [!NOTE]
