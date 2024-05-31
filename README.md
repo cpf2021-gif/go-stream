@@ -7,7 +7,6 @@
 >```bash
 >GOEXPERIMENT=rangefunc go build
 >GOEXPERIMENT=rangefunc go run
-> 
 >```
 
 ##### Quick Start
@@ -65,5 +64,5 @@ func main() {
 		ForEach(func(i int, v int) {
 			fmt.Println(i, v)
 		})
-
+}
 ```
