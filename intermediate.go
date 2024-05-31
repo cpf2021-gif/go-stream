@@ -2,15 +2,14 @@ package stream
 
 import (
 	"sort"
-	"sync"
 )
 
 /*
 	Intermediate Operations
 */
 
-func (s stream[E]) Filter(predicate func(int, E) bool) stream[E] {
-	return stream[E]{
+func (s stream[E, V]) Filter(predicate func(int, E) bool) stream[E, V] {
+	return stream[E, V]{
 		iter: func(yield func(int, E) bool) {
 			for i, v := range s.iter {
 				if predicate(i, v) {
@@ -23,9 +22,10 @@ func (s stream[E]) Filter(predicate func(int, E) bool) stream[E] {
 	}
 }
 
-func (s stream[E]) Map(mapper func(int, E) E) stream[E] {
-	return stream[E]{
-		iter: func(yield func(int, E) bool) {
+// E -> V
+func (s stream[E, V]) Map(mapper func(int, E) V) stream[V, E] {
+	return stream[V, E]{
+		iter: func(yield func(int, V) bool) {
 			for i, v := range s.iter {
 				if !yield(i, mapper(i, v)) {
 					return
@@ -35,21 +35,22 @@ func (s stream[E]) Map(mapper func(int, E) E) stream[E] {
 	}
 }
 
-func (s stream[E]) Sorted(lessfunc func(a, b any) bool) stream[E] {
+func (s stream[E, V]) Sorted(lessfunc func(a, b any) bool) stream[E, V] {
 	slice := s.ToSlice()
 	sort.Slice(slice, func(i, j int) bool {
 		return lessfunc(slice[i], slice[j])
 	})
-	return StreamOf(slice)
+	return StreamOf[[]E, E, V](slice)
 }
 
-func (s stream[E]) Distinct(fn func(v any) any) stream[E] {
-	return stream[E]{
+func (s stream[E, V]) Distinct(fn func(v any) any) stream[E, V] {
+	return stream[E, V]{
 		iter: func(yield func(int, E) bool) {
-			var m sync.Map
+			set := make(map[any]struct{})
 
 			for i, v := range s.iter {
-				if _, loaded := m.LoadOrStore(fn(v), struct{}{}); !loaded {
+				if _, loaded := set[fn(v)]; !loaded {
+					set[fn(v)] = struct{}{}
 					if !yield(i, v) {
 						return
 					}
@@ -59,16 +60,13 @@ func (s stream[E]) Distinct(fn func(v any) any) stream[E] {
 	}
 }
 
-func (s stream[E]) Head(n int64) stream[E] {
-	if n < 1 {
-		panic("n must be greater than 0")
-	}
+func (s stream[E, V]) Head(n uint64) stream[E, V] {
 
-	return stream[E]{
+	return stream[E, V]{
 		iter: func(yield func(int, E) bool) {
 			i := 0
 			for _, v := range s.iter {
-				if int64(i) >= n {
+				if uint64(i) >= n {
 					return
 				}
 				if !yield(i, v) {
@@ -80,8 +78,8 @@ func (s stream[E]) Head(n int64) stream[E] {
 	}
 }
 
-func (s stream[E]) BackWalk() stream[E] {
-	return stream[E]{
+func (s stream[E, V]) BackWalk() stream[E, V] {
+	return stream[E, V]{
 		iter: func(yield func(int, E) bool) {
 			slice := s.ToSlice()
 			for i := len(slice) - 1; i >= 0; i-- {
@@ -93,12 +91,9 @@ func (s stream[E]) BackWalk() stream[E] {
 	}
 }
 
-func (s stream[E]) Tail(n int64) stream[E] {
-	if n < 1 {
-		panic("n must be greater than 0")
-	}
+func (s stream[E, V]) Tail(n uint64) stream[E, V] {
 
-	return stream[E]{
+	return stream[E, V]{
 		iter: func(yield func(int, E) bool) {
 			slice := s.ToSlice()
 			start := max(len(slice)-int(n), 0)

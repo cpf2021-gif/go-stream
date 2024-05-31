@@ -4,6 +4,7 @@ import (
 	"iter"
 )
 
-type stream[E any] struct {
-	iter iter.Seq2[int, E]
+type stream[E, V any] struct {
+	iter   iter.Seq2[int, E]
+	target V
 }
